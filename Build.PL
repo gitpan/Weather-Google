@@ -9,8 +9,11 @@ my $build = Module::Build->new (
 	module_name => 'Weather::Google',
 	license => 'perl',
 	requires => {
-		'LWP::UserAgent'  => 0,
-		'XML::Simple'     => 0,
+		'LWP::Simple'  => 0,
+		'XML::Simple'  => 0,
+		'Test::More'   => 0,
+		'Test::Simple' => 0,
+		'Test::Pod'    => 0,
 	},
 );
 $build->create_build_script;

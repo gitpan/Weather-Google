@@ -1,8 +1,15 @@
 NAME
     Weather::Google - Perl interface to Google's Weather API
 
+VERSION
+    Version 0.02
+
 SYNOPSIS
      use Weather::Google;
+
+     # If you plan on using locations with non-ASCII characters
+     use encoding 'utf8';
+
      my $gw;
 
      ## Initialize the module
@@ -42,14 +49,14 @@ SYNOPSIS
             $gw->info('current_date_time');
 
 DESCRIPTION
-    Weather::Google provides an interface to Google's Weather API.
+    Weather::Google provides a simple interface to Google's Weather API.
 
 METHODS
-    new Initializes the Weather::Google object. Optionally takes a
+    new Initializes and returns a Weather::Google object. Optionally takes a
         Zip/postal code or city name as an argument.
 
     zip Sets the zip/postal code for the Weather::Google object. Takes a 5
-        digit integer as an argument. Returns 1 if successful.
+        digit integer as an argument. Returns 1 on success.
 
     city
         Sets the city for the Weather::Google object. Takes a string as an
@@ -82,9 +89,9 @@ METHODS
 
         ARGUMENTS
             The current_conditions() method will take any string as an
-            argument, but will print warnings and return undefs if the
-            information is not available. It is generally safe to use the
-            following strings as arguments:
+            argument, but will return undefs if the information is not
+            available. It is generally safe to use the following strings as
+            arguments:
 
              icon
              temp_f
@@ -131,9 +138,9 @@ METHODS
 
         ARGUMENTS
             The forecast_conditions() method will take any string as an
-            argument, but will print warnings and return undefs if the
-            information is not available.It is generally safe to use the
-            following strings as arguments:
+            argument, but will return undefs if the information is not
+            available.It is generally safe to use the following strings as
+            arguments:
 
              icon
              high
@@ -167,9 +174,9 @@ METHODS
 
         ARGUMENTS
             The forecast_informatio() method will take any string as an
-            argument, but will print warnings and return undefs if the
-            information is not available. It is generally safe to use the
-            following strings as arguments:
+            argument, but will return undefs if the information is not
+            available. It is generally safe to use the following strings as
+            arguments:
 
              forecast_date
              current_date_time
@@ -186,6 +193,9 @@ METHODS
         forecast_information().
 
     err This method returns the most recent error.
+
+        This is generally useful if you expect one of the other methods to
+        return something, but it returns undef instead.
 
 ALIASES
     Using the methods defined in METHODS in a script can get annoying very
@@ -212,13 +222,27 @@ ALIASES
     and so on.
 
 AUTHOR
-    Dan "Possum" LeWarne possum+perl@possumism.net
+    Daniel LeWarne "<possum at cpan.org>"
 
-VERSION
-    0.01
+BUGS
+    Google's XML files occasionally sends invalid UTF-8. Google::Weather can
+    generally compensate for this, bu if you would like to force
+    Google::Weather to strip utf8 characters instead of trying to re-encode
+    them, you can say
+
+     use Weather::Google;
+     $Weather::Google::ENCODE=0;
+
+    to force non-ASCII characters to be stripped from the output.
+
+    Please report any bugs or feature requests to "bug-weather-google at
+    rt.cpan.org", or through the web interface at
+    <http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Weather-Google>. I will
+    be notified, and then you'll automatically be notified of progress on
+    your bug as I make changes.
 
 COPYRIGHT
-    Copyright (C) 2008 Dan "Possum" LeWarne. All Rights Reserved.
+    Copyright (C) 2008 Daniel "Possum" LeWarne. All Rights Reserved.
 
     This program is free software, you can redistribute it and/or modify it
     under the same terms as Perl itself.

@@ -3,9 +3,12 @@ package Weather::Google;
 use strict;
 use warnings;
 use LWP::Simple qw/get/;
-require XML::Simple;
+use XML::Simple;
 
-our $VERSION = 0.01;
+our $ENCODE;
+$ENCODE = 1 if eval { require Encode };
+
+our $VERSION = 0.02;
 our $AUTOLOAD;
 use constant GAPI => 'http://www.google.com/ig/api?weather=';
 
@@ -14,6 +17,7 @@ sub new {
 	my $self = {};
 	bless ($self,$class);
 	$self->{xs} = XML::Simple->new;
+#	$self->{xs} = XML::Parser->new;
 
 	return $self unless @_;
 
@@ -36,7 +40,9 @@ sub zip {
 	}
 
 	my $xml = get(GAPI.$zip);
+	$xml = Encode::decode_utf8($xml,$Encode::FB_DEFAULT) if $ENCODE;
 	my $w = $self->{xs}->xml_in($xml) or return;
+#	my $w = $self->{xs}->parse($xml) or return;
 	
 	$self->_parse($w);
 	return 1;
@@ -49,6 +55,11 @@ sub city {
 	# Encode the location for URL
 	$loc =~ s/([^\w()’*~!.-])/sprintf '%%%02x', ord $1/eg;
 	my $xml = get(GAPI.$loc);
+	if ( $ENCODE ) {
+		$xml = Encode::decode_utf8($xml,$Encode::FB_DEFAULT);
+	} else {
+		$xml =~ s/[01[:^ascii:]%]//g;
+	}
 	my $w = $self->{xs}->xml_in($xml) or return;
 
 	$self->_parse($w);
@@ -199,13 +210,17 @@ Weather::Google - Perl interface to Google's Weather API
 
 =head1 VERSION
 
-Version 0.01
+Version 0.02
 
 =cut
 
 =head1 SYNOPSIS
 
  use Weather::Google;
+
+ # If you plan on using locations with non-ASCII characters
+ use encoding 'utf8';
+
  my $gw;
 
  ## Initialize the module
@@ -279,7 +294,7 @@ Returns 1 if successful.
 
 =cut
 
-=item  current_conditions
+=item current_conditions
 
 Method to report on current weather conditions.  With no argument, this
 returns a hash reference containing weather information.  Optionally takes an
@@ -472,6 +487,15 @@ Daniel LeWarne C<< <possum at cpan.org> >>
 
 =head1 BUGS
 
+Google's XML files occasionally sends invalid UTF-8.  Google::Weather can
+generally compensate for this, bu if you would like to force Google::Weather to
+strip utf8 characters instead of trying to re-encode them, you can say
+
+ use Weather::Google;
+ $Weather::Google::ENCODE=0;
+
+to force non-ASCII characters to be stripped from the output.
+
 Please report any bugs or feature requests to C<bug-weather-google at
 rt.cpan.org>, or through the web interface at
 L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Weather-Google>.  I will be
@@ -480,7 +504,7 @@ I make changes.
 
 =head1 COPYRIGHT
 
-Copyright (C) 2008 Dan "Possum" LeWarne.  All Rights Reserved.
+Copyright (C) 2008 Daniel "Possum" LeWarne.  All Rights Reserved.
 
 This program is free software, you can redistribute it and/or modify it
 under the same terms as Perl itself.
