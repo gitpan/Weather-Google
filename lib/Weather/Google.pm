@@ -8,7 +8,7 @@ use XML::Simple;
 our $ENCODE;
 $ENCODE = 1 if eval { require Encode };
 
-our $VERSION = 0.02;
+our $VERSION = 0.03;
 our $AUTOLOAD;
 use constant GAPI => 'http://www.google.com/ig/api?weather=';
 
@@ -210,7 +210,7 @@ Weather::Google - Perl interface to Google's Weather API
 
 =head1 VERSION
 
-Version 0.02
+Version 0.03
 
 =cut
 

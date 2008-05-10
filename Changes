@@ -1,3 +1,6 @@
+0.03
+	Fixed broken test case on MSWin32.
+
 0.02
 	Fixed bug #34570, no longer chokes on invalid utf8
 
