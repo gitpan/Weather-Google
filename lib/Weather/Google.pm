@@ -8,9 +8,31 @@ use XML::Simple;
 our $ENCODE;
 $ENCODE = 1 if eval { require Encode };
 
-our $VERSION = 0.04;
+our $ENCODING = 'utf-8';
+
+our $VERSION = 0.05;
 our $AUTOLOAD;
 use constant GAPI => 'http://www.google.com/ig/api?weather=';
+
+# Mapping of current supported encodings
+my %DEFAULT_ENCODINGS = (
+    en      => 'latin1',
+    da      => 'latin1',
+    de      => 'latin1',
+    es      => 'latin1',
+    fi      => 'latin1',
+    fr      => 'latin1',
+    it      => 'latin1',
+    ja      => 'utf-8',
+    ko      => 'utf-8',
+    nl      => 'latin1',
+    no      => 'latin1',
+    'pt-BR' => 'latin1',
+    ru      => 'utf-8',
+    sv      => 'latin1',
+    'zh-CN' => 'utf-8',
+    'zh-TW' => 'utf-8',
+);
 
 sub new {
 	my ( $class, $area, $opt ) = @_;
@@ -20,6 +42,7 @@ sub new {
 	$self->{xs} = XML::Simple->new;
 
 	$self->language($opt->{language}) if defined $opt->{language};
+    $self->encoding($opt->{encoding}) if defined $opt->{encoding};
 
 	return $self unless $area;
 
@@ -42,38 +65,32 @@ sub _location_url {
 }
 
 sub zip {
-	my $self = shift;
-	my $zip = shift;
-	unless ($zip =~ /\d{5}?$/) {
-		$self->err("Not a zip code");
-		return;
-	}
+    my $self = shift;
+    my $zip  = shift;
+    unless ( $zip =~ /\d{5}?$/ ) {
+        $self->err("Not a zip code");
+        return;
+    }
 
-	my $xml = get($self->_location_url($zip));
-	$xml = Encode::decode_utf8($xml,$Encode::FB_DEFAULT) if $ENCODE;
-	my $w = $self->{xs}->xml_in($xml) or return;
-#	my $w = $self->{xs}->parse($xml) or return;
+    my $xml = $self->_decode( get( $self->_location_url($zip) ) );
+    my $w = $self->{xs}->xml_in($xml) or return;
 
-	$self->_parse($w);
-	return 1;
+    $self->_parse($w);
+    return 1;
 }
 
 sub city {
-	my $self = shift;
-	my $loc = shift;
+    my $self = shift;
+    my $loc  = shift;
 
-	# Encode the location for URL
-	$loc =~ s/([^\w()’*~!.-])/sprintf '%%%02x', ord $1/eg;
-	my $xml = get($self->_location_url($loc));
-	if ( $ENCODE ) {
-		$xml = Encode::decode_utf8($xml,$Encode::FB_DEFAULT);
-	} else {
-		$xml =~ s/[01[:^ascii:]%]//g;
-	}
-	my $w = $self->{xs}->xml_in($xml) or return;
+    # Encode the location for URL
+    $loc =~ s/([^\w()’*~!.-])/sprintf '%%%02x', ord $1/eg;
 
-	$self->_parse($w);
-	return 1;
+    my $xml = $self->_decode( get( $self->_location_url($loc) ) );
+    my $w = $self->{xs}->xml_in($xml) or return;
+
+    $self->_parse($w);
+    return 1;
 }
 
 sub language {
@@ -88,13 +105,24 @@ sub language {
 	    en da de es fi fr it ja ko nl no pt-BR ru sv zh-CN zh-TW
 	/;
 
-	unless (defined $languages{$lang})
-	{
+	unless (defined $languages{$lang}) {
 	    warn qq|"$lang" is not a supported ISO language code.\n|;
 	    return $self->{lang};
 	}
 
 	$self->{lang} = $lang;
+    $self->{encoding} ||= $DEFAULT_ENCODINGS{$lang};
+}
+
+sub encoding {
+	my $self = shift;
+
+	return ( $self->{encoding} ||= $ENCODING ) unless @_;
+    my $encoding = shift;
+
+    # TODO Check valid encoding
+
+	$self->{encoding} = $encoding;
 }
 
 sub current_conditions {
@@ -178,6 +206,22 @@ sub err {
 	return $self->{ERR};
 }
 
+sub _decode {
+    my ( $self, $xml ) = @_;
+    if ($ENCODE) {
+        if ( Encode::is_utf8($xml) ) {
+            $xml = Encode::decode_utf8( $xml, $Encode::FB_DEFAULT );
+        }
+        else {
+            $xml = Encode::decode( $self->encoding, $xml, $Encode::FB_DEFAULT );
+        }
+    }
+    else {
+        $xml =~ s/[01[:^ascii:]%]//g;
+    }
+    return $xml;
+}
+
 sub _parse {
 	my $self = shift;
 	my $w = shift;
@@ -231,7 +275,7 @@ sub AUTOLOAD {
 
 1;
 
-__END__;
+__END__
 
 =head1 NAME
 
@@ -259,11 +303,22 @@ Version 0.03
  $gw = new Weather::Google('Beverly Hills, CA'); # City name
  $gw = new Weather::Google('Herne, Germany',{language => 'de'});
 
+ # Encoding is optional, should be handled properly without specifying
+ $gw = new Weather::Google(
+    'Paris, France',
+    {language => 'fr', encoding => 'latin1'},
+ );
+
  # Or
  $gw = new Weather::Google;
  $gw->zip(90210); # Zip code
  $gw->city('Beverly Hills, CA'); # City name
  $gw->language('de'); # Localization
+
+ $gw->language('fr');
+
+ # Again, this is optional.
+ $gw->encoding('latin1');
 
  ## Get some current information
 
@@ -346,6 +401,16 @@ Supported language codes: "en", "da", "de", "es", "fi", "fr", "it", "ja",
 "ko", "nl", "no", "pt-BR", "ru", "sv", "zh-CN", "zh-TW"
 
 Returns the currently set ISO language code.
+
+=cut
+
+=item encoding
+
+Optionally takes a character encoding as an argument (i.e. "latin1", "utf-8") to
+set the encoding that is expected from the server for proper localization.
+(Default: language specific, or "utf-8")
+
+Returns the currently set encoding, or the language default.
 
 =cut
 
@@ -542,20 +607,49 @@ Daniel LeWarne C<< <possum at cpan.org> >>
 
 =head1 BUGS
 
-Google's XML files occasionally sends invalid UTF-8.  Google::Weather can
-generally compensate for this, bu if you would like to force Google::Weather to
-strip utf8 characters instead of trying to re-encode them, you can say
-
- use Weather::Google;
- $Weather::Google::ENCODE=0;
-
-to force non-ASCII characters to be stripped from the output.
-
 Please report any bugs or feature requests to C<bug-weather-google at
 rt.cpan.org>, or through the web interface at
 L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Weather-Google>.  I will be
 notified, and then you'll automatically be notified of progress on your bug as
 I make changes.
+
+=head1 SUPPORT
+
+You can find documentation for this module with the perldoc command.
+
+    perldoc Weather::Google
+
+
+You can also look for information at:
+
+=over 4
+
+=item * RT: CPAN's request tracker
+
+L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Weather-Google>
+
+=item * AnnoCPAN: Annotated CPAN documentation
+
+L<http://annocpan.org/dist/Weather-Google>
+
+=item * CPAN Ratings
+
+L<http://cpanratings.perl.org/d/Weather-Google>
+
+=item * Search CPAN
+
+L<http://search.cpan.org/dist/Weather-Google/>
+
+=item * Source code repository on GitHub
+
+L<http://github.com/possum/Weather-Google/>
+
+=back
+
+=head1 ACKNOWLEDGEMENTS
+
+Some of the localization code provided by Alex Linke.
+
 
 =head1 COPYRIGHT
 
@@ -570,3 +664,4 @@ This (very briefly) discusses the Weather API
 
 L<http://toolbar.google.com/buttons/apis/howto_guide.html>
 
+=cut

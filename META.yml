@@ -1,23 +1,26 @@
 ---
 name: Weather-Google
-version: 0.04
+version: 0.05
 author: []
 abstract: Perl interface to Google's Weather API
 license: perl
 resources:
   license: http://dev.perl.org/licenses/
-requires:
-  LWP::Simple: 0
-  XML::Simple: 0
 build_requires:
   Test::More: 0
   Test::Pod: 0
   Test::Simple: 0
+  Test::Warn: 0
+requires:
+  LWP::Simple: 0
+  XML::Simple: 0
+configure_requires:
+  Module::Build: 0.340201
 provides:
   Weather::Google:
     file: lib/Weather/Google.pm
-    version: 0.04
-generated_by: Module::Build version 0.280801
+    version: 0.05
+generated_by: Module::Build version 0.340201
 meta-spec:
-  url: http://module-build.sourceforge.net/META-spec-v1.2.html
-  version: 1.2
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
