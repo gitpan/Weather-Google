@@ -14,3 +14,4 @@ t/04forecast_information.t
 t/05language.t
 t/pod-coverage.t
 t/pod.t
+META.json
